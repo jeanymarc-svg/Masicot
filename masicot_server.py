@@ -211,22 +211,21 @@ def run_scheduler():
         time.sleep(60)  # Check every minute
 
 # ============================================================================
-# STARTUP
+# STARTUP - Start scheduler when module loads (for gunicorn)
 # ============================================================================
+# Start scheduler in background thread when module is loaded
+scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
+scheduler_thread.start()
+
+print(f"\n{'='*80}")
+print(f"🚀 MASICOT Position Tracker Server Starting")
+print(f"{'='*80}")
+print(f"Webhook URL: /webhook")
+print(f"Health check: /health")
+print(f"Manual trigger: /generate-digest")
+print(f"{'='*80}\n")
+
+# For local development
 if __name__ == '__main__':
-    # Start scheduler in background thread
-    scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
-    scheduler_thread.start()
-    
-    # Start Flask server
     port = int(os.getenv('PORT', 5000))
-    print(f"\n{'='*80}")
-    print(f"🚀 MASICOT Position Tracker Server Starting")
-    print(f"{'='*80}")
-    print(f"Port: {port}")
-    print(f"Webhook URL: http://localhost:{port}/webhook")
-    print(f"Health check: http://localhost:{port}/health")
-    print(f"Manual trigger: http://localhost:{port}/generate-digest")
-    print(f"{'='*80}\n")
-    
     app.run(host='0.0.0.0', port=port, debug=False)
