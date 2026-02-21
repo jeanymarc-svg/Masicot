@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "gunicorn masicot_server:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120",
+    "startCommand": "python masicot_server.py",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
