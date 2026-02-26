@@ -172,6 +172,18 @@ def update_signals_sheet():
             print("❌ Sheets service not available")
             return
         
+        # Check if this is the first run (no baseline yet)
+        if not previous_positions:
+            print("\n" + "="*80)
+            print("ℹ️  FIRST RUN DETECTED - ESTABLISHING BASELINE")
+            print("="*80)
+            print(f"Recorded {len(positions)} symbols as baseline")
+            print("No signals generated today (nothing to compare against)")
+            print("Signals will begin on the next market day")
+            print("="*80 + "\n")
+            previous_positions.update(positions.copy())
+            return  # Skip signal generation on first run
+        
         # Get all symbols
         all_symbols = set(list(positions.keys()) + list(previous_positions.keys()))
         
