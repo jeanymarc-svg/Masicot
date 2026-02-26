@@ -6,6 +6,7 @@ Deploy to: Railway.app, Render.com, or Fly.io
 """
 
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from datetime import datetime
 import json
 import os
@@ -16,6 +17,7 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # ============================================================================
 # CONFIGURATION (Set via environment variables)
