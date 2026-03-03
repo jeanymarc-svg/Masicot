@@ -71,7 +71,7 @@ def webhook():
         if not symbol or not position:
             return jsonify({"error": "Missing required fields"}), 400
         
-        # Update position tracking
+        # Update position tracking IN MEMORY ONLY
         positions[symbol] = {
             'position': position,
             'price': price,
@@ -82,9 +82,7 @@ def webhook():
         
         print(f"[{timestamp}] {symbol}: {position} @ {price} (stop: {stop})")
         
-        # Update Google Sheet immediately
-        update_positions_sheet()
-        
+        # RESPOND IMMEDIATELY (don't update sheet here)
         return jsonify({"status": "success", "symbol": symbol, "position": position}), 200
         
     except Exception as e:
@@ -245,15 +243,24 @@ def update_signals_sheet():
 # SCHEDULED TASKS
 # ============================================================================
 def run_scheduler():
-    """Background thread for scheduled signal updates"""
-    # Schedule signal detection for specified time on weekdays
+    """Background thread for scheduled tasks"""
+    # Schedule sheet update for 4:05 PM (5 min after webhooks arrive)
+    schedule.every().monday.at("16:05").do(update_positions_sheet)
+    schedule.every().tuesday.at("16:05").do(update_positions_sheet)
+    schedule.every().wednesday.at("16:05").do(update_positions_sheet)
+    schedule.every().thursday.at("16:05").do(update_positions_sheet)
+    schedule.every().friday.at("16:05").do(update_positions_sheet)
+    
+    # Schedule signal detection for 4:30 PM on weekdays
     schedule.every().monday.at(UPDATE_TIME).do(update_signals_sheet)
     schedule.every().tuesday.at(UPDATE_TIME).do(update_signals_sheet)
     schedule.every().wednesday.at(UPDATE_TIME).do(update_signals_sheet)
     schedule.every().thursday.at(UPDATE_TIME).do(update_signals_sheet)
     schedule.every().friday.at(UPDATE_TIME).do(update_signals_sheet)
     
-    print(f"📅 Scheduler started. Signals will be detected at {UPDATE_TIME} on weekdays.")
+    print(f"📅 Scheduler started.")
+    print(f"   - Position sheet updates at 4:05 PM weekdays")
+    print(f"   - Signal detection at {UPDATE_TIME} on weekdays.")
     
     while True:
         schedule.run_pending()
