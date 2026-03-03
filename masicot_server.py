@@ -122,7 +122,7 @@ def update_positions_sheet():
             print("❌ Sheets service not available")
             return
         
-        # Prepare data for sheet
+        # Prepare data for sheet (keep it minimal)
         headers = [['Symbol', 'Position', 'Price', 'Stop', 'Exchange', 'Last Updated']]
         rows = []
         
@@ -137,17 +137,21 @@ def update_positions_sheet():
                 pos['updated']
             ])
         
-        # Clear and update sheet
-        range_name = f"{SHEET_NAME_POSITIONS}!A1:F{len(rows) + 1}"
+        if not rows:
+            print("ℹ️ No positions to update")
+            return
         
-        # Clear existing data
+        # Clear existing data (only the range we need, not 1000 rows)
+        range_to_clear = f"{SHEET_NAME_POSITIONS}!A2:F{len(rows) + 10}"
         sheets.values().clear(
             spreadsheetId=SPREADSHEET_ID,
-            range=f"{SHEET_NAME_POSITIONS}!A2:F1000"
+            range=range_to_clear
         ).execute()
         
         # Write new data
+        range_name = f"{SHEET_NAME_POSITIONS}!A1:F{len(rows) + 1}"
         body = {'values': headers + rows}
+        
         sheets.values().update(
             spreadsheetId=SPREADSHEET_ID,
             range=range_name,
@@ -156,6 +160,10 @@ def update_positions_sheet():
         ).execute()
         
         print(f"✅ Updated positions sheet: {len(rows)} symbols")
+        
+        # Clear references to help garbage collection
+        del rows
+        del headers
         
     except Exception as e:
         print(f"❌ Error updating positions sheet: {e}")
