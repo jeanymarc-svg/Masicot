@@ -252,23 +252,19 @@ def update_signals_sheet():
 # ============================================================================
 def run_scheduler():
     """Background thread for scheduled tasks"""
-    # Schedule sheet update for 21:05 UTC (4:05 PM ET)
-    schedule.every().monday.at("21:05").do(update_positions_sheet)
-    schedule.every().tuesday.at("21:05").do(update_positions_sheet)
-    schedule.every().wednesday.at("21:05").do(update_positions_sheet)
-    schedule.every().thursday.at("21:05").do(update_positions_sheet)
-    schedule.every().friday.at("21:05").do(update_positions_sheet)
+    # TEMPORARY TEST SCHEDULE - Testing tonight at 10:39 PM ET (03:39 UTC)
+    # TODO: Change back to 21:05/21:30 UTC after successful test
     
-    # Schedule signal detection for 21:30 UTC (4:30 PM ET)
-    schedule.every().monday.at("21:30").do(update_signals_sheet)
-    schedule.every().tuesday.at("21:30").do(update_signals_sheet)
-    schedule.every().wednesday.at("21:30").do(update_signals_sheet)
-    schedule.every().thursday.at("21:30").do(update_signals_sheet)
-    schedule.every().friday.at("21:30").do(update_signals_sheet)
+    # Sheet update at 10:39 PM ET (03:39 UTC)
+    schedule.every().day.at("03:39").do(update_positions_sheet)
     
-    print(f"📅 Scheduler started (UTC times).")
-    print(f"   - Position sheet updates at 21:05 UTC (4:05 PM ET)")
-    print(f"   - Signal detection at 21:30 UTC (4:30 PM ET)")
+    # Signal detection at 10:44 PM ET (03:44 UTC) 
+    schedule.every().day.at("03:44").do(update_signals_sheet)
+    
+    print(f"📅 Scheduler started (TEST MODE - UTC times).")
+    print(f"   - Position sheet updates at 03:39 UTC (10:39 PM ET) - TONIGHT")
+    print(f"   - Signal detection at 03:44 UTC (10:44 PM ET) - TONIGHT")
+    print(f"   ⚠️  REMEMBER TO CHANGE BACK TO 21:05/21:30 AFTER TEST!")
     
     while True:
         schedule.run_pending()
