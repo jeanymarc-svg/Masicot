@@ -252,23 +252,23 @@ def update_signals_sheet():
 # ============================================================================
 def run_scheduler():
     """Background thread for scheduled tasks"""
-    # Schedule sheet update for 4:05 PM (5 min after webhooks arrive)
-    schedule.every().monday.at("16:05").do(update_positions_sheet)
-    schedule.every().tuesday.at("16:05").do(update_positions_sheet)
-    schedule.every().wednesday.at("16:05").do(update_positions_sheet)
-    schedule.every().thursday.at("16:05").do(update_positions_sheet)
-    schedule.every().friday.at("16:05").do(update_positions_sheet)
+    # Schedule sheet update for 21:05 UTC (4:05 PM ET)
+    schedule.every().monday.at("21:05").do(update_positions_sheet)
+    schedule.every().tuesday.at("21:05").do(update_positions_sheet)
+    schedule.every().wednesday.at("21:05").do(update_positions_sheet)
+    schedule.every().thursday.at("21:05").do(update_positions_sheet)
+    schedule.every().friday.at("21:05").do(update_positions_sheet)
     
-    # Schedule signal detection for 4:30 PM on weekdays
-    schedule.every().monday.at(UPDATE_TIME).do(update_signals_sheet)
-    schedule.every().tuesday.at(UPDATE_TIME).do(update_signals_sheet)
-    schedule.every().wednesday.at(UPDATE_TIME).do(update_signals_sheet)
-    schedule.every().thursday.at(UPDATE_TIME).do(update_signals_sheet)
-    schedule.every().friday.at(UPDATE_TIME).do(update_signals_sheet)
+    # Schedule signal detection for 21:30 UTC (4:30 PM ET)
+    schedule.every().monday.at("21:30").do(update_signals_sheet)
+    schedule.every().tuesday.at("21:30").do(update_signals_sheet)
+    schedule.every().wednesday.at("21:30").do(update_signals_sheet)
+    schedule.every().thursday.at("21:30").do(update_signals_sheet)
+    schedule.every().friday.at("21:30").do(update_signals_sheet)
     
-    print(f"📅 Scheduler started.")
-    print(f"   - Position sheet updates at 4:05 PM weekdays")
-    print(f"   - Signal detection at {UPDATE_TIME} on weekdays.")
+    print(f"📅 Scheduler started (UTC times).")
+    print(f"   - Position sheet updates at 21:05 UTC (4:05 PM ET)")
+    print(f"   - Signal detection at 21:30 UTC (4:30 PM ET)")
     
     while True:
         schedule.run_pending()
