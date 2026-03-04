@@ -1,8 +1,8 @@
 """
-MASICOT Position Tracker Server - Google Sheets Version
+MASICOT Position Tracker Server - Production Version
 Receives webhooks from TradingView strategies and updates Google Sheet
 
-Deploy to: Railway.app, Render.com, or Fly.io
+Deploy to: Railway.app
 """
 
 from flask import Flask, request, jsonify
@@ -22,11 +22,10 @@ CORS(app)  # Enable CORS for all routes
 # ============================================================================
 # CONFIGURATION (Set via environment variables)
 # ============================================================================
-GOOGLE_CREDENTIALS_JSON = os.getenv('GOOGLE_CREDENTIALS_JSON', '')  # Service account JSON
-SPREADSHEET_ID = os.getenv('SPREADSHEET_ID', '')  # Your Google Sheet ID
+GOOGLE_CREDENTIALS_JSON = os.getenv('GOOGLE_CREDENTIALS_JSON', '')
+SPREADSHEET_ID = os.getenv('SPREADSHEET_ID', '')
 SHEET_NAME_POSITIONS = 'Current Positions'
 SHEET_NAME_SIGNALS = 'Signals'
-UPDATE_TIME = os.getenv('UPDATE_TIME', '16:30')  # Time to snapshot daily signals
 
 # ============================================================================
 # GOOGLE SHEETS CLIENT
@@ -48,8 +47,8 @@ def get_sheets_service():
 # ============================================================================
 # STATE STORAGE
 # ============================================================================
-positions = {}  # Current positions: {"AAPL": {"position": "LONG", "stop": 225.50, "price": 230.00, "updated": "2026-02-21"}}
-previous_positions = {}  # Yesterday's snapshot for comparison
+positions = {}
+previous_positions = {}
 
 # ============================================================================
 # WEBHOOK ENDPOINT
@@ -60,10 +59,9 @@ def webhook():
     try:
         data = request.json
         
-        # Extract data
         symbol = data.get('symbol')
         exchange = data.get('exchange', '')
-        position = data.get('position')  # "LONG", "SHORT", or "NEUTRAL"
+        position = data.get('position')
         price = data.get('price')
         stop = data.get('stop')
         timestamp = data.get('timestamp')
@@ -71,7 +69,6 @@ def webhook():
         if not symbol or not position:
             return jsonify({"error": "Missing required fields"}), 400
         
-        # Update position tracking IN MEMORY ONLY
         positions[symbol] = {
             'position': position,
             'price': price,
@@ -82,7 +79,6 @@ def webhook():
         
         print(f"[{timestamp}] {symbol}: {position} @ {price} (stop: {stop})")
         
-        # RESPOND IMMEDIATELY (don't update sheet here)
         return jsonify({"status": "success", "symbol": symbol, "position": position}), 200
         
     except Exception as e:
@@ -102,11 +98,11 @@ def health():
     }), 200
 
 # ============================================================================
-# MANUAL TRIGGER (for testing)
+# MANUAL TRIGGER
 # ============================================================================
 @app.route('/update-sheet', methods=['GET'])
 def manual_update():
-    """Manually trigger sheet update (for testing)"""
+    """Manually trigger sheet update"""
     update_positions_sheet()
     update_signals_sheet()
     return jsonify({"status": "Sheets updated"}), 200
@@ -122,7 +118,6 @@ def update_positions_sheet():
             print("❌ Sheets service not available")
             return
         
-        # Prepare data for sheet (keep it minimal)
         headers = [['Symbol', 'Position', 'Price', 'Stop', 'Exchange', 'Last Updated']]
         rows = []
         
@@ -141,14 +136,12 @@ def update_positions_sheet():
             print("ℹ️ No positions to update")
             return
         
-        # Clear existing data (only the range we need, not 1000 rows)
         range_to_clear = f"{SHEET_NAME_POSITIONS}!A2:F{len(rows) + 10}"
         sheets.values().clear(
             spreadsheetId=SPREADSHEET_ID,
             range=range_to_clear
         ).execute()
         
-        # Write new data
         range_name = f"{SHEET_NAME_POSITIONS}!A1:F{len(rows) + 1}"
         body = {'values': headers + rows}
         
@@ -161,7 +154,6 @@ def update_positions_sheet():
         
         print(f"✅ Updated positions sheet: {len(rows)} symbols")
         
-        # Clear references to help garbage collection
         del rows
         del headers
         
@@ -178,7 +170,6 @@ def update_signals_sheet():
             print("❌ Sheets service not available")
             return
         
-        # Check if this is the first run (no baseline yet)
         if not previous_positions:
             print("\n" + "="*80)
             print("ℹ️  FIRST RUN DETECTED - ESTABLISHING BASELINE")
@@ -188,12 +179,9 @@ def update_signals_sheet():
             print("Signals will begin on the next market day")
             print("="*80 + "\n")
             previous_positions.update(positions.copy())
-            return  # Skip signal generation on first run
+            return
         
-        # Get all symbols
         all_symbols = set(list(positions.keys()) + list(previous_positions.keys()))
-        
-        # Detect changes
         signals = []
         
         for symbol in sorted(all_symbols):
@@ -202,12 +190,10 @@ def update_signals_sheet():
             
             signal_type = None
             
-            # Detect NEW entries
             if today_pos == 'LONG' and yesterday_pos == 'NEUTRAL':
                 signal_type = 'NEW LONG'
             elif today_pos == 'SHORT' and yesterday_pos == 'NEUTRAL':
                 signal_type = 'NEW SHORT'
-            # Detect EXITs
             elif today_pos == 'NEUTRAL' and yesterday_pos == 'LONG':
                 signal_type = 'LONG EXIT'
             elif today_pos == 'NEUTRAL' and yesterday_pos == 'SHORT':
@@ -224,7 +210,6 @@ def update_signals_sheet():
                 ])
         
         if signals:
-            # Append to signals sheet (preserve history)
             range_name = f"{SHEET_NAME_SIGNALS}!A:F"
             body = {'values': signals}
             
@@ -240,7 +225,6 @@ def update_signals_sheet():
         else:
             print("ℹ️ No new signals to add")
         
-        # Update previous positions for next comparison
         previous_positions.clear()
         previous_positions.update(positions.copy())
         
@@ -252,39 +236,42 @@ def update_signals_sheet():
 # ============================================================================
 def run_scheduler():
     """Background thread for scheduled tasks"""
-    # TEMPORARY TEST SCHEDULE - Testing tonight at 10:39 PM ET (03:39 UTC)
-    # TODO: Change back to 21:05/21:30 UTC after successful test
+    # Position sheet updates at 21:05 UTC (4:05 PM ET)
+    schedule.every().monday.at("21:05").do(update_positions_sheet)
+    schedule.every().tuesday.at("21:05").do(update_positions_sheet)
+    schedule.every().wednesday.at("21:05").do(update_positions_sheet)
+    schedule.every().thursday.at("21:05").do(update_positions_sheet)
+    schedule.every().friday.at("21:05").do(update_positions_sheet)
     
-    # Sheet update at 10:39 PM ET (03:39 UTC)
-    schedule.every().day.at("03:39").do(update_positions_sheet)
+    # Signal detection at 21:30 UTC (4:30 PM ET)
+    schedule.every().monday.at("21:30").do(update_signals_sheet)
+    schedule.every().tuesday.at("21:30").do(update_signals_sheet)
+    schedule.every().wednesday.at("21:30").do(update_signals_sheet)
+    schedule.every().thursday.at("21:30").do(update_signals_sheet)
+    schedule.every().friday.at("21:30").do(update_signals_sheet)
     
-    # Signal detection at 10:44 PM ET (03:44 UTC) 
-    schedule.every().day.at("03:44").do(update_signals_sheet)
-    
-    print(f"📅 Scheduler started (TEST MODE - UTC times).")
-    print(f"   - Position sheet updates at 03:39 UTC (10:39 PM ET) - TONIGHT")
-    print(f"   - Signal detection at 03:44 UTC (10:44 PM ET) - TONIGHT")
-    print(f"   ⚠️  REMEMBER TO CHANGE BACK TO 21:05/21:30 AFTER TEST!")
+    print(f"📅 Scheduler started (UTC)")
+    print(f"   - Position updates: 21:05 UTC (4:05 PM ET) weekdays")
+    print(f"   - Signal detection: 21:30 UTC (4:30 PM ET) weekdays")
     
     while True:
         schedule.run_pending()
-        time.sleep(60)  # Check every minute
+        time.sleep(60)
 
 # ============================================================================
-# STARTUP - Start scheduler when module loads
+# STARTUP
 # ============================================================================
 scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
 scheduler_thread.start()
 
 print(f"\n{'='*80}")
-print(f"🚀 MASICOT Position Tracker Server Starting (Google Sheets Mode)")
+print(f"🚀 MASICOT Position Tracker Server")
 print(f"{'='*80}")
-print(f"Webhook URL: /webhook")
-print(f"Health check: /health")
-print(f"Manual update: /update-sheet")
+print(f"Webhook: /webhook")
+print(f"Health: /health")
+print(f"Manual: /update-sheet")
 print(f"{'='*80}\n")
 
-# For local development
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
