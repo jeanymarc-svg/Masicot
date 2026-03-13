@@ -3,6 +3,9 @@ MASICOT Position Tracker Server - Production Version
 Receives webhooks from TradingView strategies and updates Google Sheet
 
 Deploy to: Railway.app
+
+Changelog:
+- v2: Added direct flip detection (LONG→SHORT, SHORT→LONG) with FLIP flag in signal type
 """
 
 from flask import Flask, request, jsonify
@@ -161,7 +164,7 @@ def update_positions_sheet():
         print(f"❌ Error updating positions sheet: {e}")
 
 def update_signals_sheet():
-    """Update Signals sheet with NEW/EXIT signals"""
+    """Update Signals sheet with NEW/EXIT signals including direct flip detection"""
     global previous_positions
     
     try:
@@ -190,6 +193,7 @@ def update_signals_sheet():
             
             signal_type = None
             
+            # Standard transitions
             if today_pos == 'LONG' and yesterday_pos == 'NEUTRAL':
                 signal_type = 'NEW LONG'
             elif today_pos == 'SHORT' and yesterday_pos == 'NEUTRAL':
@@ -198,6 +202,16 @@ def update_signals_sheet():
                 signal_type = 'LONG EXIT'
             elif today_pos == 'NEUTRAL' and yesterday_pos == 'SHORT':
                 signal_type = 'SHORT EXIT'
+            
+            # Direct flip detection — same-bar exit + re-entry in opposite direction
+            # Webhook fires during real-time bar; chart recalculates to final position
+            # Result: no NEUTRAL step, direction changes without a signal row
+            elif today_pos == 'SHORT' and yesterday_pos == 'LONG':
+                signal_type = 'NEW SHORT (FLIP)'
+                print(f"⚠️  FLIP DETECTED: {symbol} LONG → SHORT (same-bar flip)")
+            elif today_pos == 'LONG' and yesterday_pos == 'SHORT':
+                signal_type = 'NEW LONG (FLIP)'
+                print(f"⚠️  FLIP DETECTED: {symbol} SHORT → LONG (same-bar flip)")
             
             if signal_type:
                 signals.append([
@@ -210,6 +224,14 @@ def update_signals_sheet():
                 ])
         
         if signals:
+            # Log flip signals separately for visibility
+            flip_signals = [s for s in signals if 'FLIP' in s[3]]
+            if flip_signals:
+                print(f"\n⚠️  {len(flip_signals)} FLIP SIGNAL(S) DETECTED:")
+                for s in flip_signals:
+                    print(f"   {s[2]}: {s[3]} @ {s[4]}")
+                print()
+
             range_name = f"{SHEET_NAME_SIGNALS}!A:F"
             body = {'values': signals}
             
@@ -221,7 +243,7 @@ def update_signals_sheet():
                 body=body
             ).execute()
             
-            print(f"✅ Added {len(signals)} new signals to sheet")
+            print(f"✅ Added {len(signals)} new signals to sheet ({len(flip_signals)} flips)")
         else:
             print("ℹ️ No new signals to add")
         
@@ -265,11 +287,12 @@ scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
 scheduler_thread.start()
 
 print(f"\n{'='*80}")
-print(f"🚀 MASICOT Position Tracker Server")
+print(f"🚀 MASICOT Position Tracker Server v2")
 print(f"{'='*80}")
 print(f"Webhook: /webhook")
 print(f"Health: /health")
 print(f"Manual: /update-sheet")
+print(f"Flip detection: ENABLED (LONG↔SHORT direct transitions flagged)")
 print(f"{'='*80}\n")
 
 if __name__ == '__main__':
