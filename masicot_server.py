@@ -258,23 +258,30 @@ def update_signals_sheet():
 # ============================================================================
 def run_scheduler():
     """Background thread for scheduled tasks"""
-    # Position sheet updates at 21:05 UTC (4:05 PM ET)
-    schedule.every().monday.at("21:05").do(update_positions_sheet)
-    schedule.every().tuesday.at("21:05").do(update_positions_sheet)
-    schedule.every().wednesday.at("21:05").do(update_positions_sheet)
-    schedule.every().thursday.at("21:05").do(update_positions_sheet)
-    schedule.every().friday.at("21:05").do(update_positions_sheet)
+    # Position sheet updates at 20:05 UTC (4:05 PM EDT)
+    # NOTE: 20:05 UTC = 4:05 PM EDT (UTC-4, Mar-Nov)
+    # Adjusted from 21:05 UTC after DST shift in March 2026 caused 1-hour delay
+    # Revert to 21:05 UTC when DST ends in November
+    schedule.every().monday.at("20:05").do(update_positions_sheet)
+    schedule.every().tuesday.at("20:05").do(update_positions_sheet)
+    schedule.every().wednesday.at("20:05").do(update_positions_sheet)
+    schedule.every().thursday.at("20:05").do(update_positions_sheet)
+    schedule.every().friday.at("20:05").do(update_positions_sheet)
     
-    # Signal detection at 21:30 UTC (4:30 PM ET)
-    schedule.every().monday.at("21:30").do(update_signals_sheet)
-    schedule.every().tuesday.at("21:30").do(update_signals_sheet)
-    schedule.every().wednesday.at("21:30").do(update_signals_sheet)
-    schedule.every().thursday.at("21:30").do(update_signals_sheet)
-    schedule.every().friday.at("21:30").do(update_signals_sheet)
+    # Signal detection at 20:30 UTC (4:30 PM EDT)
+    # NOTE: 20:30 UTC = 4:30 PM EDT (UTC-4, Mar-Nov)
+    # Adjusted from 21:30 UTC after DST shift in March 2026 caused 1-hour delay
+    # Revert to 21:30 UTC when DST ends in November
+    schedule.every().monday.at("20:30").do(update_signals_sheet)
+    schedule.every().tuesday.at("20:30").do(update_signals_sheet)
+    schedule.every().wednesday.at("20:30").do(update_signals_sheet)
+    schedule.every().thursday.at("20:30").do(update_signals_sheet)
+    schedule.every().friday.at("20:30").do(update_signals_sheet)
     
     print(f"📅 Scheduler started (UTC)")
-    print(f"   - Position updates: 21:05 UTC (4:05 PM ET) weekdays")
-    print(f"   - Signal detection: 21:30 UTC (4:30 PM ET) weekdays")
+    print(f"   - Position updates: 20:05 UTC (4:05 PM EDT) weekdays")
+    print(f"   - Signal detection: 20:30 UTC (4:30 PM EDT) weekdays")
+    print(f"   - NOTE: Revert to 21:05/21:30 UTC when DST ends in November")
     
     while True:
         schedule.run_pending()
